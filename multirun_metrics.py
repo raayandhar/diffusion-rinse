@@ -222,7 +222,18 @@ def main(
             
             start_idx = last_log_idx + 1
             # last idx where we have a data point from all logs
-            end_idx = min(*[len(x) for x in log_dfs])
+            #end_idx = min(*[len(x) for x in log_dfs])
+            
+            logging.info(f"log_dfs types: {[type(x) for x in log_dfs]}")
+            # Filter only valid DataFrames
+            valid_dfs = [x for x in log_dfs if isinstance(x, pd.DataFrame)]
+
+            if not valid_dfs:
+                logging.warning("No valid log DataFrames found. Skipping this round.")
+                time.sleep(interval)
+                continue
+
+            end_idx = min(len(x) for x in valid_dfs)
 
             # log every position
             for this_idx in range(start_idx, end_idx):
@@ -265,3 +276,4 @@ def main(
 
 if __name__ == "__main__":
     main()
+

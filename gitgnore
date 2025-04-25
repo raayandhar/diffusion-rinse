@@ -1,0 +1,24 @@
+# Ignore outputs, cache, checkpoints
+data/outputs/
+wandb/
+*.ckpt
+*.zarr
+*.zip
+nohup.out
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.tmp
+media/
+
+# Ignore environments
+.env
+.venv
+*.env
+*.venv
+
+# VSCode/IDE settings if needed
+.vscode/
+.idea/

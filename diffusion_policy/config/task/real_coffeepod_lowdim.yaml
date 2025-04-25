@@ -1,0 +1,45 @@
+# coffee_real_lowdim_task.yaml
+
+name: coffee_real_lowdim
+dataset_path: /data/soham/coffee_real
+
+shape_meta: &shape_meta
+  obs:
+    JointAngles:
+      shape: [7]
+      type: low_dim
+    JointSpeeds:
+      shape: [7]
+      type: low_dim
+    TCPPose:
+      shape: [6]
+      type: low_dim
+    TCPSpeed:
+      shape: [1]
+      type: low_dim
+    Grasp:
+      shape: [1]
+      type: low_dim
+    stage:
+      shape: [1]
+      type: low_dim
+  action:
+    shape: [7]
+
+dataset:
+  _target_: diffusion_policy.dataset.real_coffee_lowdim_dataset.RealCoffeeLowdimDataset
+  shape_meta: *shape_meta
+  dataset_path: ${task.dataset_path}
+  horizon: 16   #Changed from 10 for 16*16 attention mask in the transformer
+  n_obs_steps: 2
+  pad_before: ${eval:'${n_obs_steps}-1'}
+  pad_after: ${eval:'${horizon}-${n_obs_steps}'}
+  n_latency_steps: 0
+  use_cache: True  # speeds up training after first pass
+  seed: 42
+  val_ratio: 0.0
+  max_train_episodes: null
+  delta_action: False
+
+env_runner:
+  _target_: diffusion_policy.env_runner.real_coffee_lowdim_runner.RealCoffeeLowdimRunner

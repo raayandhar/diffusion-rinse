@@ -1,0 +1,8 @@
+Cannot find primary config 'train_diffusion_unet_real'. Check that it's in your config search path.
+
+Config search path:
+	provider=hydra, path=pkg://hydra.conf
+	provider=main, path=file:///home/sohamkulkarni/diffusion_policy/diffusion_policy/config
+	provider=schema, path=structured://
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
