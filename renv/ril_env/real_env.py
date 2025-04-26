@@ -469,7 +469,8 @@ class RealEnv:
             action = new_actions[i]
             pose = action[:6]
             grasp = action[-1]
-        
+            print(f"Action: {action}")
+            print(f"Grasp: {grasp}")
             try:
                 # Schedule the waypoint with the interpolation controller
                 # Ensure the timestamp is at least a bit in the future for smoothing
