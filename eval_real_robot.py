@@ -44,10 +44,10 @@ OmegaConf.register_new_resolver("eval", eval, replace=True)
 def get_real_obs_dict_custom(env_obs, shape_meta, n_obs_steps=2):
     """A modified version of get_real_obs_dict that works with the actual keys in the environment"""
     # Print raw camera shapes
-    print("Raw env_obs camera shapes:")
-    for key in env_obs:
-        if key.startswith('camera_'):
-            print(f"{key}: {env_obs[key].shape}, dtype: {env_obs[key].dtype}")
+    # print("Raw env_obs camera shapes:")
+    # for key in env_obs:
+        # if key.startswith('camera_'):
+            # print(f"{key}: {env_obs[key].shape}, dtype: {env_obs[key].dtype}")
     
     result = dict()
     
@@ -102,10 +102,10 @@ def get_real_obs_dict_custom(env_obs, shape_meta, n_obs_steps=2):
         result['stage'] = this_data_in
     
     # Add debugging to print shapes
-    print("Processed observation shapes:")
-    for k, v in result.items():
-        if isinstance(v, np.ndarray):
-            print(f"{k}: {v.shape}, dtype: {v.dtype}")
+    # print("Processed observation shapes:")
+    # for k, v in result.items():
+        # if isinstance(v, np.ndarray):
+            # print(f"{k}: {v.shape}, dtype: {v.dtype}")
     
     return result
 # @click.command()
@@ -196,7 +196,7 @@ def main(
             # Warm up policy inference
             logger.info("Warming up policy inference...")
             obs = env.get_obs()
-            print(obs['camera_0'].shape)
+
             
             with torch.no_grad():
                 policy.reset()
@@ -302,7 +302,7 @@ def main(
                             
                             # Use interpolation if enabled
                             if use_interpolation:
-                                print("USING.")
+                                # print("USING.")
                                 env.exec_action_waypoints(
                                     actions=[action],
                                     timestamps=[exec_timestamp],

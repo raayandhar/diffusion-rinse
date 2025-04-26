@@ -147,7 +147,8 @@ def main(
                     lambda x: torch.from_numpy(x).unsqueeze(0).to(device))
                 result = policy.predict_action(obs_dict)
                 action = result['action'][0].detach().to('cpu').numpy()
-                assert action.shape[-1] == 2  # xy position
+                print(f"ACTION: {action}")
+                assert action.shape[-1] == 7  # xy position
                 del result
 
             time.sleep(1)

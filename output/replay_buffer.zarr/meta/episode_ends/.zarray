@@ -1,6 +1,6 @@
 {
     "chunks": [
-        16
+        25
     ],
     "compressor": null,
     "dtype": "<i8",
@@ -8,7 +8,7 @@
     "filters": null,
     "order": "C",
     "shape": [
-        16
+        22
     ],
     "zarr_format": 2
 }
