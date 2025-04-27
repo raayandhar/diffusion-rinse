@@ -68,6 +68,9 @@ def get_real_obs_dict_custom(env_obs, shape_meta, n_obs_steps=2):
                 for img in this_data_in:
                     # Resize image to expected dimensions
                     resized = cv2.resize(img, (expected_width, expected_height))
+                    resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+                    resized[:,:,0] *= 1.3  # Boost red channel
+                    resized[:,:,2] *= 0.7  # Reduce blue channel
                     # Transform from HWC to CHW format
                     transposed = np.transpose(resized, (2, 0, 1))
                     processed_images.append(transposed)
@@ -112,7 +115,7 @@ def get_real_obs_dict_custom(env_obs, shape_meta, n_obs_steps=2):
 # @click.option('--input', '-i', required=False, help="Ckpt path")
 # Update the main function to add support for interpolation controller
 def main(
-    input="./checkpoints/epoch=0050-train_loss=0.026.ckpt",
+    input="./checkpoints/epoch=0250-train_loss=0.007.ckpt",
     output="./output/",
     init_joints=True,
     frequency=30,
@@ -130,6 +133,7 @@ def main(
 
     # Load checkpoint
     ckpt_path = input
+    print("CHECKPOINT: ", ckpt_path, "\n\n")
     payload = torch.load(open(ckpt_path, 'rb'), pickle_module=dill)
     cfg = payload['cfg']
     cls = hydra.utils.get_class(cfg._target_)
@@ -202,6 +206,16 @@ def main(
                 policy.reset()
                 obs_dict_np = get_real_obs_dict_custom(
                     env_obs=obs, shape_meta=cfg.task.shape_meta, n_obs_steps=n_obs_steps)
+                """
+                for key, value in obs_dict_np.items():
+                    if key.startswith('camera_'):
+                        for i in range(len(value)):
+                            img = value[i].transpose(1, 2, 0)
+                            if img.max() <= 1.0:
+                                img = (img * 255).astype(np.uint8)
+                            cv2.imshow(f"Policy Input: {key} frame {i}", img)
+                        cv2.waitKey(1)  # Update display without waiting for key press
+                """
                 obs_dict = dict_apply(obs_dict_np, 
                     lambda x: torch.from_numpy(x).unsqueeze(0).to(device))
                 result = policy.predict_action(obs_dict)
@@ -371,6 +385,17 @@ def main(
                                 lambda x: torch.from_numpy(x).unsqueeze(0).to(device))
                             result = policy.predict_action(obs_dict)
                             action = result['action'][0].detach().to('cpu').numpy()
+                            print("ACTION: ", action)
+                            has_positive_values = (action[:, 6] > 0).any()
+                            print("Contains positive grasp values:", has_positive_values)
+
+                            has_significant_values = (action[:, 6] >= 0.5).any()
+                            # print("\n\n\n WANTS TO GRASP \n\n\n", has_significant_values)
+
+                            has_one = (action[:, 6] == 1).any()
+                            print(f"\n\n\n WANTS TO GRASP: {has_one} \n {action[:, 6]} \n\n")
+                            # grasp = 1.0 if has_one else 0.0
+
                             logger.debug(f'Inference latency: {time.time() - s}')
                         
                         # Convert policy action to robot actions

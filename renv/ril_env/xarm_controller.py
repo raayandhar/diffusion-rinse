@@ -688,6 +688,7 @@ class XArmInterpolationController(mp.Process):
         soft_real_time=False,
         verbose=False,
     ):
+        # Tested different max_pos_speed, max_rot_speed, still issue
         super().__init__(name="XArmInterpolationController")
         
         # Store configuration
@@ -1201,8 +1202,8 @@ class PolicyExecutionController:
         self.motion_filter_alpha = 0.3  # Lower = smoother but laggier motion
         
         # Scaling factors to reduce movement amplitude
-        self.position_scale = 0.5  # Scale position movements by 50%
-        self.rotation_scale = 0.3  # Scale rotation movements by 30%
+        self.position_scale = 1.0  # Scale position movements by 50%
+        self.rotation_scale = 1.0  # Scale rotation movements by 30%
         
         # Center point for scaling (typically current robot position)
         self.center_position = None
