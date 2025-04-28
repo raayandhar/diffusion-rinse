@@ -42,48 +42,44 @@ logger = logging.getLogger(__name__)
 OmegaConf.register_new_resolver("eval", eval, replace=True)
 
 def get_real_obs_dict_custom(env_obs, shape_meta, n_obs_steps=2):
-    """A modified version of get_real_obs_dict that works with the actual keys in the environment"""
-    # Print raw camera shapes
-    # print("Raw env_obs camera shapes:")
-    # for key in env_obs:
-        # if key.startswith('camera_'):
-            # print(f"{key}: {env_obs[key].shape}, dtype: {env_obs[key].dtype}")
-    
     result = dict()
     
-    # Process camera observations
+    # Scaling factors for each camera to achieve target means of [161, 98, 70]
+    scaling_factors = {
+        'camera_0': [1.97, 1.06, 0.475],
+        'camera_1': [2.1, 1.11, 0.525],
+        'camera_2': [2.28, 1.185, 0.54]
+    }
+    
     for key, value in shape_meta['obs'].items():
         if key.startswith('camera_'):
             if key in env_obs:
-                # Get expected shape from shape_meta
                 expected_channels = value['shape'][0]
                 expected_height = value['shape'][1]
                 expected_width = value['shape'][2]
-                
-                # Get last n_obs_steps observations from buffer
                 this_data_in = env_obs[key][-n_obs_steps:]
-                
-                # Process each image in the sequence
                 processed_images = []
+                
                 for img in this_data_in:
-                    # Resize image to expected dimensions
                     resized = cv2.resize(img, (expected_width, expected_height))
                     resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-                    resized[:,:,0] *= 1.3  # Boost red channel
-                    resized[:,:,2] *= 0.7  # Reduce blue channel
-                    # Transform from HWC to CHW format
+                    
+                    if key in scaling_factors:
+                        factors = scaling_factors[key]
+                        resized = resized.astype(np.float32)
+                        resized[:,:,0] *= factors[0]
+                        resized[:,:,1] *= factors[1]
+                        resized[:,:,2] *= factors[2]
+                        resized = np.clip(resized, 0, 255)
+                    
                     transposed = np.transpose(resized, (2, 0, 1))
                     processed_images.append(transposed)
                 
-                # Stack processed images
                 processed_data = np.stack(processed_images)
-                # Normalize if needed
                 if processed_data.dtype == np.uint8:
                     processed_data = processed_data.astype(np.float32) / 255.0
-                
                 result[key] = processed_data
-    
-    # Process low_dim state using correct keys mapping
+
     key_mapping = {
         'robot_eef_pose': 'TCPPose',
         'robot_eef_pose_vel': 'TCPSpeed',
@@ -98,24 +94,21 @@ def get_real_obs_dict_custom(env_obs, shape_meta, n_obs_steps=2):
             this_data_in = env_obs[actual_key][-n_obs_steps:]
             result[model_key] = this_data_in
     
-    # Add stage with guaranteed correct shape
     if 'stage' in shape_meta['obs']:
         feature_dim = shape_meta['obs']['stage']['shape'][0]
         this_data_in = np.zeros((n_obs_steps, feature_dim), dtype=np.float32)
         result['stage'] = this_data_in
     
-    # Add debugging to print shapes
-    # print("Processed observation shapes:")
-    # for k, v in result.items():
-        # if isinstance(v, np.ndarray):
-            # print(f"{k}: {v.shape}, dtype: {v.dtype}")
+    for key, value in result.items():
+        if key.startswith('camera_'):
+            means = np.mean(value, axis=(2, 3))
+            print(f"{key} channel means (normalized): {means[0]}")
+            print(f"{key} channel means (0-255 scale): {means[0] * 255}")
     
     return result
-# @click.command()
-# @click.option('--input', '-i', required=False, help="Ckpt path")
-# Update the main function to add support for interpolation controller
+
 def main(
-    input="./checkpoints/epoch=0250-train_loss=0.007.ckpt",
+    input="./checkpoints/epoch=0125-train_loss=0.011.ckpt",
     output="./output/",
     init_joints=True,
     frequency=30,
@@ -206,6 +199,7 @@ def main(
                 policy.reset()
                 obs_dict_np = get_real_obs_dict_custom(
                     env_obs=obs, shape_meta=cfg.task.shape_meta, n_obs_steps=n_obs_steps)
+
                 """
                 for key, value in obs_dict_np.items():
                     if key.startswith('camera_'):
@@ -213,9 +207,12 @@ def main(
                             img = value[i].transpose(1, 2, 0)
                             if img.max() <= 1.0:
                                 img = (img * 255).astype(np.uint8)
-                            cv2.imshow(f"Policy Input: {key} frame {i}", img)
-                        cv2.waitKey(1)  # Update display without waiting for key press
+                            bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+                            cv2.imshow(f"Policy Input: {key} frame {i}", bgr)
+                        cv2.waitKey(1)
                 """
+
                 obs_dict = dict_apply(obs_dict_np, 
                     lambda x: torch.from_numpy(x).unsqueeze(0).to(device))
                 result = policy.predict_action(obs_dict)
@@ -394,7 +391,7 @@ def main(
 
                             has_one = (action[:, 6] == 1).any()
                             print(f"\n\n\n WANTS TO GRASP: {has_one} \n {action[:, 6]} \n\n")
-                            # grasp = 1.0 if has_one else 0.0
+                            grasp = 1.0 if has_one else 0.0
 
                             logger.debug(f'Inference latency: {time.time() - s}')
                         
